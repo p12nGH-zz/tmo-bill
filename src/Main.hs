@@ -4,35 +4,33 @@ import Control.Monad (forM_)
 dollarAmount :: String -> Double
 dollarAmount = read . tail . snd . (break ((==) '$'))
 
-data AccountType = VoiceLine | DataLine | VoiceLineWithAcc Double
-
-accountTotal = do 
-    skipUntil $ startsWith "Total: "
-    dollarAmount <$> currentLine
+data Account = Line String Double (Maybe Double) deriving (Show)
 
 phoneNumber = do
     skipUntil $ startsWith "("
     currentLine
 
-getTotal = do
-    skipUntil $ startsWith "Total: "
+getAmount s = do
+    skipUntil $ startsWith s
     dollarAmount <$> currentLine
 
-line = do
-    number <- phoneNumber 
-    skip 1
-    -- startsWith "Plan" 
-    total <- getTotal 
-    return (number, total)
+getTotal = getAmount "Total: "
+getSubtotal = getAmount "Subtotal: "
 
-line2 = do
-    number <- phoneNumber 
-    startsWith "T-Mobile fees and charges"
-    total <- getTotal 
-    return (number, total)
+line = (,) <$> phoneNumber <*> getTotal
+
+lineAcc = do
+    (l, a) <- within' line $ do
+        skipUntil $ startsWith "AAL SC N.America UNL"
+    return $ Line (fst l) (snd l) (Just 8.5)
+
+lineNoAcc = do
+    l <- line
+    return $ Line (fst l) (snd l) Nothing
 
 main = do
     (Just r) <- processStdIn $ do
-        accountTotal
-        many $ choice [line]
-    forM_ r print
+        (,) <$> getTotal
+            <*> (many $ skipUntil $ choice [lineAcc, lineNoAcc])
+    forM_ (snd r) print
+    print (fst r)
