@@ -1,36 +1,36 @@
 import Text.Parsing.Report
 import Control.Monad (forM_)
+import Data.Maybe (catMaybes)
 
-dollarAmount :: String -> Double
+dollarAmount :: String -> Float
 dollarAmount = read . tail . snd . (break ((==) '$'))
 
-data Account = Line String Double (Maybe Double) deriving (Show)
+data Account = Line {
+    number :: String,
+    amount:: Float,
+    accCharges :: (Maybe Float) } deriving (Show)
 
-phoneNumber = do
-    skipUntil $ startsWith "("
-    currentLine
-
-getAmount s = do
-    skipUntil $ startsWith s
-    dollarAmount <$> currentLine
+find = skipUntil . startsWith
+phoneNumber = find "(" *> currentLine
+getAmount s = find s *> (dollarAmount <$> currentLine)
 
 getTotal = getAmount "Total: "
-getSubtotal = getAmount "Subtotal: "
 
-line = (,) <$> phoneNumber <*> getTotal
+line = (,) <$> phoneNumber <* find "Plan: SC N.America UnlTT" <*> getTotal
 
 lineAcc = do
-    (l, a) <- within' line $ do
-        skipUntil $ startsWith "AAL SC N.America UNL"
-    return $ Line (fst l) (snd l) (Just 8.5)
+    ((n, a), ac) <- within' line $ do
+        find "AAL SC N.America UNL"
+    return $ Line n a (Just 8.5)
 
 lineNoAcc = do
-    l <- line
-    return $ Line (fst l) (snd l) Nothing
+    (n, a) <- line
+    return $ Line n a Nothing
 
 main = do
-    (Just r) <- processStdIn $ do
+    (Just (a, r)) <- processStdIn $ do
         (,) <$> getTotal
             <*> (many $ skipUntil $ choice [lineAcc, lineNoAcc])
-    forM_ (snd r) print
-    print (fst r)
+    forM_ r print
+    let acc = sum $ catMaybes $ map accCharges r
+    print $ a + acc
