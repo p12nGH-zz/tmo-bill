@@ -11,12 +11,12 @@ data Account = Line String Float (Maybe Float)
 find = skipUntil . startsWith
 phoneNumber = find "(" *> currentLine
 getAmount s = find s *> (dollarAmount <$> currentLine)
-getTotal = getAmount "Total: "
+getTotal = getAmount "Total: $"
 
 line = (,) <$> phoneNumber <* find "Plan: SC N.America UnlTT" <*> getTotal
 
 lineAcc = do
-    ((n, a), ac) <- within' line $ do
+    ((n, a), _) <- within' line $ do
         find "AAL SC N.America UNL"
     return $ Line n (a - 8.5) (Just 8.5)
 
