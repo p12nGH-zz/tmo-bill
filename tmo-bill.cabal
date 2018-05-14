@@ -57,7 +57,7 @@ executable tmo-bill
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10,
+  build-depends:       base >=4.9,
                        report-parser
   
   -- Directories containing source files.
