@@ -23,11 +23,12 @@ data LineCharges = LineCharges {
 } deriving (Show)
 
 find = skipUntil . startsWith
+findExact s = skipUntil $ predicate $ (==) s
 phoneNumber = find "(" *> currentLine
 getAmount s = find s *> (dollarAmount <$> currentLine)
 getTotal = getAmount "Total: $"
 
-equipment = find "Equipment" *> getAmount "Subtotal"
+equipment = findExact "Equipment" *> getAmount "Subtotal"
 plan = find "AAL SC N.America UNL" *> getAmount "$"
 
 line = (,) <$> phoneNumber <* find "Plan: SC N.America UnlTT" <*> getTotal
